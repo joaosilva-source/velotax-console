@@ -1,0 +1,159 @@
+import { useState } from "react";
+import toast from "react-hot-toast";
+
+export default function FormSolicitacao({ registrarLog }) {
+  const [form, setForm] = useState({
+    agente: "",
+    cpf: "",
+    tipo: "Alteração de Dados Cadastrais",
+    infoTipo: "",
+    dadoAntigo: "",
+    dadoNovo: "",
+    fotosVerificadas: false,
+    excluirVelotax: false,
+    excluirCelcoin: false,
+    saldoZerado: false,
+    observacoes: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const atualizar = (campo, valor) => setForm(prev => ({ ...prev, [campo]: valor }));
+
+  const montarMensagem = () => {
+    // monta texto parecido com seu formato atual, com emojis
+    const simNao = v => (v ? "✅ Sim" : "❌ Não");
+    let msg = `*Nova Solicitação Técnica - ${form.tipo}*\n\n`;
+    msg += `Agente: ${form.agente}\nCPF: ${form.cpf}\n\n`;
+
+    if (form.tipo === "Exclusão de Conta") {
+      // se qualquer exclusão marcada, mostra Sim
+      const exclVel = form.excluirVelotax;
+      const exclCel = form.excluirCelcoin;
+
+      msg += `Excluir conta Velotax: ${simNao(exclVel)}\n`;
+      msg += `Excluir conta Celcoin: ${simNao(exclCel)}\n`;
+      msg += `Conta com saldo zerado: ${simNao(form.saldoZerado)}\n`;
+      msg += `Observações: ${form.observacoes || "—"}\n`;
+    } else if (form.tipo === "Alteração de Dados Cadastrais") {
+      msg += `Tipo de informação: ${form.infoTipo}\nDado antigo: ${form.dadoAntigo}\nDado novo: ${form.dadoNovo}\nFotos verificadas: ${simNao(form.fotosVerificadas)}\nObservações: ${form.observacoes || "—"}\n`;
+    } else {
+      msg += `Observações: ${form.observacoes || "—"}\n`;
+    }
+    return msg;
+  };
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    registrarLog("Iniciando envio...");
+
+    const mensagemTexto = montarMensagem();
+
+    const payload = {
+      jid: process.env.NEXT_PUBLIC_DEFAULT_JID || "120363404556164664@g.us",
+      mensagem: mensagemTexto
+    };
+
+    try {
+      const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        registrarLog("✅ Enviado com sucesso");
+        toast.success("Solicitação enviada");
+      } else {
+        const txt = await res.text();
+        registrarLog("❌ Erro: " + txt);
+        toast.error("Erro ao enviar");
+      }
+    } catch (err) {
+      registrarLog("❌ Falha de conexão");
+      toast.error("Falha de conexão");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={enviar} className="bg-[var(--panel)] border border-white/10 p-6 rounded-xl shadow-xl space-y-4 transition duration-300 hover:shadow-2xl">
+      <h2 className="text-xl font-semibold">Formulário de Solicitação</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label>Agente</label>
+          <input className="input" value={form.agente} onChange={(e)=>atualizar("agente", e.target.value)} />
+        </div>
+
+        <div>
+          <label>CPF</label>
+          <input className="input" value={form.cpf} onChange={(e)=>atualizar("cpf", e.target.value)} />
+        </div>
+      </div>
+
+      <div>
+        <label>Tipo de Solicitação</label>
+        <select className="input" value={form.tipo} onChange={(e)=>atualizar("tipo", e.target.value)}>
+          <option>Alteração de Dados Cadastrais</option>
+          <option>Exclusão de Chave PIX</option>
+          <option>Exclusão de Conta</option>
+        </select>
+      </div>
+
+      {/* Se for exclusão de conta, mostra checkboxes */}
+      {form.tipo === "Exclusão de Conta" && (
+        <div className="bg-white/5 p-4 rounded-lg mt-2">
+          <div className="flex gap-4 items-center">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={form.excluirVelotax} onChange={(e)=>atualizar("excluirVelotax", e.target.checked)} /> Excluir conta Velotax</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={form.excluirCelcoin} onChange={(e)=>atualizar("excluirCelcoin", e.target.checked)} /> Excluir conta Celcoin</label>
+          </div>
+          <div className="mt-3">
+            <label>Conta com saldo zerado</label>
+            <input type="checkbox" className="ml-2" checked={form.saldoZerado} onChange={(e)=>atualizar("saldoZerado", e.target.checked)} />
+          </div>
+        </div>
+      )}
+
+      {/* Alteração de dados */}
+      {form.tipo === "Alteração de Dados Cadastrais" && (
+        <div className="bg-white/5 p-4 rounded-lg mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label>Tipo de informação</label>
+              <input className="input" value={form.infoTipo} onChange={(e)=>atualizar("infoTipo", e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" className="w-4 h-4" checked={form.fotosVerificadas} onChange={(e)=>atualizar("fotosVerificadas", e.target.checked)} />
+              <label>Fotos verificadas</label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label>Dado antigo</label>
+              <input className="input" value={form.dadoAntigo} onChange={(e)=>atualizar("dadoAntigo", e.target.value)} />
+            </div>
+            <div>
+              <label>Dado novo</label>
+              <input className="input" value={form.dadoNovo} onChange={(e)=>atualizar("dadoNovo", e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label>Observações</label>
+        <textarea className="input h-28" value={form.observacoes} onChange={(e)=>atualizar("observacoes", e.target.value)} />
+      </div>
+
+      <div className="flex items-center gap-4">
+        <button disabled={loading} className={`btn-primary ${loading ? 'opacity-60 cursor-not-allowed' : ''}`} type="submit">
+          {loading ? "Enviando..." : "Enviar"}
+        </button>
+        <span className="text-sm text-gray-300">Enviar para o grupo padrão</span>
+      </div>
+    </form>
+  );
+}

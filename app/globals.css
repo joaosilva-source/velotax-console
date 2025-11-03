@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg:#000058;
+  --panel:#0a0a2a;
+  --accent:#1634FF;
+  --muted:#ffffff66;
+}
+
+/* inputs estilizados */
+.input {
+  @apply w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1634FF] transition duration-200;
+}
+
+label { @apply block mb-1 text-gray-300 text-sm; }
+
+/* botões */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-semibold bg-[#1634FF] hover:bg-blue-600 transition text-white;
+}
